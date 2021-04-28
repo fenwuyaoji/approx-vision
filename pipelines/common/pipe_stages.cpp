@@ -16,7 +16,9 @@ Mat Image2Mat( Image<float> *InImage ) {
   split(OutMat, three_channels);
 
   // Convert from planar RGB memory storage to interleaved BGR memory storage
-  for (int y=0; y<height; y++) {
+//  #pragma omp parallel for 
+ for (int y=0; y<height; y++) {
+//  #pragma omp parallel for
     for (int x=0; x<width; x++) {
       // Blue channel
       three_channels[0].at<float>(y,x) = (*InImage)(x,y,2);
@@ -40,7 +42,9 @@ Image<float> Mat2Image( Mat *InMat ) {
   split((*InMat), three_channels);
 
   // Convert from interleaved BGR memory storage to planar RGB memory storage
+//  #pragma omp parallel for
   for (int y=0; y<height; y++) {
+//  #pragma omp parallel for
     for (int x=0; x<width; x++) {
       // Blue channel
       OutImage(x,y,2) = three_channels[0].at<float>(y,x);
@@ -176,7 +180,9 @@ void OpenCV_remosaic (Mat *InMat ) {
   // G R
 
   // Note: OpenCV stores as BGR not RGB
+//  #pragma omp parallel for
   for (int y=0; y<(*InMat).rows; y++) {
+//  #pragma omp parallel for
     for (int x=0; x<(*InMat).cols; x++) {
       // If an even row
       if ( y%2 == 0 ) {
@@ -231,30 +237,30 @@ void OpenCV_lloydmax_requant (Mat *InMat ) {
 
   // Read in the levels
   ifstream file;
-	file.open("../../analysis/lloydmax_b_CDF.txt");
-	if(file.is_open())  {
+    file.open("../../analysis/lloydmax_b_CDF.txt");
+    if(file.is_open())  {
      for(int i = 0; i < num_levels; ++i)  {
-			 file >> levels[i];
-	   }
-	}
-	// Scale the levels down to 0-1 range
-	for(int i=0; i<num_levels; i++) {
+             file >> levels[i];
+       }
+    }
+    // Scale the levels down to 0-1 range
+    for(int i=0; i<num_levels; i++) {
     levels[i] = levels[i] / 256.0;
-	}
+    }
   
-	// Requantize
+    // Requantize
   for (int y=0; y<(*InMat).rows; y++) {
     for (int x=0; x<(*InMat).cols; x++) {
       for (int c=0; c<3; c++) {
         auto pos = std::upper_bound(levels, 
-						                        levels + 256,
-					                          three_channels[c].at<float>(y,x))
-				                                                   	- levels;
+                                                levels + 256,
+                                              three_channels[c].at<float>(y,x))
+                                                                       - levels;
         three_channels[c].at<float>(y,x) = (float)(pos) / 256.0;
-			}
-		}
-	}
-	cv::merge(three_channels, *InMat); 
+            }
+        }
+    }
+    cv::merge(three_channels, *InMat); 
 
 }
 
@@ -622,3 +628,4 @@ Image<float> gaussian_blur(Image<float> *in) {
 
     return output;
 }
+

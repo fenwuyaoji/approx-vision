@@ -9,6 +9,8 @@
 #include "../common/LoadCamModel.h"
 #include "../common/MatrixOps.h"
 
+#include <ctime>
+
 // Pipeline V1 
 // 
 // Test type: 
@@ -20,6 +22,9 @@
 int main(int argc, char **argv) {
 
   using namespace std;  
+
+  clock_t startTime,endTime;
+  startTime = clock();
 
   // Inform user of usage method
   if ( argc != 3 ) 
@@ -118,7 +123,7 @@ int main(int argc, char **argv) {
  
   ///////////////////////////////////////////////////////////////////////////////////////
   // Establish IO
-  char val, label;
+
   fstream infile(in_data_path);
   //fstream infile("/work/mark/datasets/cifar-10/cifar-10-batches-bin/test_batch.bin");
   if(!infile) {
@@ -129,16 +134,24 @@ int main(int argc, char **argv) {
   fstream outfile;
   outfile.open(out_data_path,fstream::out);
 
-  // Declare image handle variables
-  Var x, y, c;
 
-  // Define input image 
-  Image<uint8_t> input(32,32,3);
+
+
 
   ///////////////////////////////////////////////////////////////////////////////////////
   // Process Images
- 
+//  #pragma omp parallel for
   for (int i=0; i<10000; i++) { //i<10000
+    
+    //these are my own -------
+    char val, label;
+
+    // Declare image handle variables
+    Var x, y, c;
+    // Define input image 
+    Image<uint8_t> input(32,32,3);
+    //these are my own -------
+
 
     // Read in label
     infile.read(&val,1);
@@ -227,6 +240,14 @@ int main(int argc, char **argv) {
 
 
   }
+
+  // Save the output
+  endTime = clock();
+  //get the num of core
+  // int coreNum = omp_get_num_procs();
+  // cout<<"the num of core is:"<<coreNum<<endl;
+  endTime = clock();
+  cout<<"The run time is:"<<(double)(endTime-startTime)/CLOCKS_PER_SEC << "s" <<endl;
 
   return 0;
 }

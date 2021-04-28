@@ -8,7 +8,8 @@
 #include "../common/ImgPipeConfig.h"
 #include "../common/LoadCamModel.h"
 #include "../common/MatrixOps.h"
-
+#include <ctime>
+#include <omp.h>
 // Pipeline V1 
 // 
 // Test type: 
@@ -21,6 +22,8 @@ int main(int argc, char **argv) {
 
   using namespace std;
 
+  clock_t startTime,endTime;
+  startTime = clock();
   // Inform user of usage method
   if ( argc != 3 )
   {
@@ -73,7 +76,9 @@ int main(int argc, char **argv) {
   int width  = rev_ctrl_pts[0].size();
   int length = rev_ctrl_pts.size();
   Image<float> rev_ctrl_pts_h(width,length);
+  #pragma omp parallel for 
   for (int y=0; y<length; y++) {
+  #pragma omp parallel for
     for (int x=0; x<width; x++) {
       rev_ctrl_pts_h(x,y) = rev_ctrl_pts[y][x];
     }
@@ -82,7 +87,9 @@ int main(int argc, char **argv) {
   width  = rev_weights[0].size();
   length = rev_weights.size();
   Image<float> rev_weights_h(width,length);
+  #pragma omp parallel for
   for (int y=0; y<length; y++) {
+  #pragma omp parallel for
     for (int x=0; x<width; x++) {
       rev_weights_h(x,y) = rev_weights[y][x];
     }
@@ -92,7 +99,9 @@ int main(int argc, char **argv) {
   width  = ctrl_pts[0].size();
   length = ctrl_pts.size();
   Image<float> ctrl_pts_h(width,length);
+  #pragma omp parallel for
   for (int y=0; y<length; y++) {
+  #pragma omp parallel for
     for (int x=0; x<width; x++) {
       ctrl_pts_h(x,y) = ctrl_pts[y][x];
     }
@@ -101,7 +110,9 @@ int main(int argc, char **argv) {
   width  = weights[0].size();
   length = weights.size();
   Image<float> weights_h(width,length);
+#pragma omp parallel for
   for (int y=0; y<length; y++) {
+#pragma omp parallel for
     for (int x=0; x<width; x++) {
       weights_h(x,y) = weights[y][x];
     }
@@ -110,7 +121,9 @@ int main(int argc, char **argv) {
   width  = 3;
   length = 256;
   Image<float> rev_tone_h(width,length);
+#pragma omp parallel for
   for (int y=0; y<length; y++) {
+#pragma omp parallel for
     for (int x=0; x<width; x++) {
       rev_tone_h(x,y) = rev_tone[y][x];
     }
@@ -144,17 +157,20 @@ int main(int argc, char **argv) {
   Func rev_gamut_map_bias = make_rbf_biases   ( &rev_tone_map,
                                                 &rev_gamut_map_ctrl,
                                                 &rev_coefs );
-  Func rev_transform      = make_transform    ( &rev_gamut_map_bias,
-                                                &TsTw_tran_inv );
+  /*Func rev_transform      = make_transform    ( &rev_gamut_map_bias,
+                                                &TsTw_tran_inv );*/
 
+  //rev_tone_map.compute_root();
+  //rev_gamut_map_ctrl.compute_root();
   rev_tone_map.compute_root();
   rev_gamut_map_ctrl.compute_root();
 
-  Image<float> opencv_in_image = rev_transform.realize(width, height, 3);
+  //Image<float> opencv_in_image = rev_transform.realize(width, height, 3);
+  Image<float> opencv_in_image = rev_gamut_map_bias.realize(width, height, 3);
 
   Mat opencv_in_mat = Image2Mat(&opencv_in_image);
 
-  OpenCV_renoise(&opencv_in_mat);
+ // OpenCV_renoise(&opencv_in_mat);
 
   OpenCV_remosaic(&opencv_in_mat);
 
@@ -175,8 +191,13 @@ int main(int argc, char **argv) {
 
   ////////////////////////////////////////////////////////////////////////
   // Save the output
+  endTime = clock();
+  //get the num of core
+  int coreNum = omp_get_num_procs();
+  cout<<"the num of core is:"<<coreNum<<endl;
   save_image(output, (std::string(out_path)+"output.png").c_str());
-
+  endTime = clock();
+  cout<<"The run time is:"<<(double)(endTime-startTime)/CLOCKS_PER_SEC << "s" <<endl;
   return 0;
 }
 
